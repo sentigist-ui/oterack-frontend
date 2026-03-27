@@ -131,13 +131,24 @@ export default function Dashboard() {
           icon={DollarSign}
           variant="default"
         />
-        <MetricCard
-          title="Food Cost %"
-          value={formatPercent(foodCostPercent)}
-          subtitle={`Target: ${settings.targetFoodCostPercent}%`}
-          icon={Activity}
-          variant={foodCostPercent > settings.targetFoodCostPercent + 5 ? "danger" : foodCostPercent > settings.targetFoodCostPercent ? "warning" : "success"}
-        />
+        {role !== "cashier" && (
+          <MetricCard
+            title="Food Cost %"
+            value={formatPercent(foodCostPercent)}
+            subtitle={`Target: ${settings.targetFoodCostPercent}%`}
+            icon={Activity}
+            variant={foodCostPercent > settings.targetFoodCostPercent + 5 ? "danger" : foodCostPercent > settings.targetFoodCostPercent ? "warning" : "success"}
+          />
+        )}
+        {role === "cashier" && (
+          <MetricCard
+            title="Today's Transactions"
+            value={useSales().sales.filter(s => s.date === new Date().toISOString().split('T')[0]).length.toString()}
+            subtitle="Sales recorded today"
+            icon={Activity}
+            variant="default"
+          />
+        )}
         <MetricCard
           title="Variance Alerts"
           value={criticalCount.toString()}
@@ -155,12 +166,14 @@ export default function Dashboard() {
       </div>
 
       {/* Secondary KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <MetricCard title="Today's Profit" value={formatCurrency(todayProfit, "ETB")} subtitle="Gross profit" icon={TrendingUp} variant={todayProfit >= 0 ? "success" : "danger"} />
-        <MetricCard title="Weekly Revenue" value={formatCurrency(weekRevenue, "ETB")} subtitle="Last 7 days" icon={ShoppingBag} />
-        <MetricCard title="Weekly Food Cost" value={formatPercent(weekFoodCost)} subtitle="7-day average" icon={Flame} variant={weekFoodCost > settings.targetFoodCostPercent ? "warning" : "success"} />
-        <MetricCard title="Total Ingredients" value={ingredients.length.toString()} subtitle={`${recipes.length} active recipes`} icon={Package} />
-      </div>
+      {role !== "cashier" && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <MetricCard title="Today's Profit" value={formatCurrency(todayProfit, "ETB")} subtitle="Gross profit" icon={TrendingUp} variant={todayProfit >= 0 ? "success" : "danger"} />
+          <MetricCard title="Weekly Revenue" value={formatCurrency(weekRevenue, "ETB")} subtitle="Last 7 days" icon={ShoppingBag} />
+          <MetricCard title="Weekly Food Cost" value={formatPercent(weekFoodCost)} subtitle="7-day average" icon={Flame} variant={weekFoodCost > settings.targetFoodCostPercent ? "warning" : "success"} />
+          <MetricCard title="Total Ingredients" value={ingredients.length.toString()} subtitle={`${recipes.length} active recipes`} icon={Package} />
+        </div>
+      )}
 
       {/* Charts + Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">

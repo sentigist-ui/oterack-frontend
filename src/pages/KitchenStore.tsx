@@ -32,7 +32,7 @@ export default function KitchenStorePage() {
     return PhysicalInventory.getByDate(key) ?? null;
   });
 
-  const canEdit = user && ["admin", "manager", "storekeeper", "kitchen"].includes(user.role);
+  const canEdit = user && ["admin", "manager", "storekeeper"].includes(user.role);
   const canCount = user && ["admin", "manager"].includes(user.role);
 
   const filtered = kitchenStock.filter(k =>

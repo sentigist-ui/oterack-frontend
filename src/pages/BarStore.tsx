@@ -31,7 +31,7 @@ export default function BarStorePage() {
     return PhysicalInventory.getByDate(`bar_${today}`) ?? null;
   });
 
-  const canEdit = user && ["admin", "manager", "storekeeper"].includes(user.role);
+  const canEdit = user && ["admin", "manager"].includes(user.role);
   const canCount = user && ["admin", "manager"].includes(user.role);
   const filtered = barStock.filter(k =>
     k.ingredientName.toLowerCase().includes(search.toLowerCase())

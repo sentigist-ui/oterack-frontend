@@ -38,7 +38,9 @@ export default function Inventory() {
     return PhysicalInventory.getByDate(today) ?? null;
   });
 
-  const canEdit = user && ["admin", "manager", "storekeeper"].includes(user.role);
+  const canEdit = user && ["admin", "manager"].includes(user.role);
+  const canAdd = user && ["admin", "manager", "storekeeper"].includes(user.role);
+  const isStorekeeper = user?.role === "storekeeper";
   const canCount = user && ["admin", "manager"].includes(user.role);
   const lowStock = getLowStock();
 
@@ -214,7 +216,7 @@ export default function Inventory() {
               <ClipboardCheck className="w-3.5 h-3.5" /> Physical Count
             </button>
           )}
-          {canEdit && (
+          {canAdd && (
             <button onClick={openNew}
               className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90">
               <Plus className="w-3.5 h-3.5" /> Add Item
@@ -228,7 +230,7 @@ export default function Inventory() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/30">
-              {["Item Name", "Category", "Unit", "Cost/Unit", "Min Stock", "Theoretical Stock", ...(savedCount ? ["Physical Count", "Variance", "Var. Cost"] : []), "Status", ...(canEdit ? ["Actions"] : [])].map(h => (
+              {["Item Name", "Category", "Unit", "Cost/Unit", "Min Stock", ...(isStorekeeper ? [] : ["Theoretical Stock"]), ...(savedCount ? ["Physical Count", "Variance", "Var. Cost"] : []), "Status", ...(canEdit ? ["Actions"] : [])].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -250,9 +252,11 @@ export default function Inventory() {
                   <td className="px-4 py-3 text-xs text-muted-foreground">{item.unit}</td>
                   <td className="px-4 py-3 text-xs font-mono text-foreground">{formatCurrency(item.costPerUnit, "ETB")}</td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{item.minQuantity} {item.unit}</td>
-                  <td className="px-4 py-3">
-                    <span className={cn("text-xs font-bold font-mono", stockColor(item))}>{item.currentQuantity} {item.unit}</span>
-                  </td>
+                  {!isStorekeeper && (
+                    <td className="px-4 py-3">
+                      <span className={cn("text-xs font-bold font-mono", stockColor(item))}>{item.currentQuantity} {item.unit}</span>
+                    </td>
+                  )}
                   {savedCount && (
                     <>
                       <td className="px-4 py-3">
@@ -452,29 +456,48 @@ export default function Inventory() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Cost/Unit (ETB)</label>
-                  <input type="text" inputMode="decimal"
-                    value={editingIng._rawCost !== undefined ? editingIng._rawCost : (editingIng.costPerUnit === 0 ? "" : String(editingIng.costPerUnit ?? ""))}
-                    onChange={e => { const raw = e.target.value; const parsed = parseFloat(raw); setEditingIng(p => ({ ...p, _rawCost: raw, costPerUnit: isNaN(parsed) ? 0 : parsed })); }}
-                    className="w-full px-3 py-2 text-sm rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0.00" />
+              {isStorekeeper ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">Cost/Unit (ETB)</label>
+                    <input type="text" inputMode="decimal"
+                      value={editingIng._rawCost !== undefined ? editingIng._rawCost : (editingIng.costPerUnit === 0 ? "" : String(editingIng.costPerUnit ?? ""))}
+                      onChange={e => { const raw = e.target.value; const parsed = parseFloat(raw); setEditingIng(p => ({ ...p, _rawCost: raw, costPerUnit: isNaN(parsed) ? 0 : parsed })); }}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">Min Stock</label>
+                    <input type="text" inputMode="decimal"
+                      value={editingIng._rawMin !== undefined ? editingIng._rawMin : (editingIng.minQuantity === 0 ? "" : String(editingIng.minQuantity ?? ""))}
+                      onChange={e => { const raw = e.target.value; const parsed = parseFloat(raw); setEditingIng(p => ({ ...p, _rawMin: raw, minQuantity: isNaN(parsed) ? 0 : parsed })); }}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0.00" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Current Qty</label>
-                  <input type="text" inputMode="decimal"
-                    value={editingIng._rawQty !== undefined ? editingIng._rawQty : (editingIng.currentQuantity === 0 ? "" : String(editingIng.currentQuantity ?? ""))}
-                    onChange={e => { const raw = e.target.value; const parsed = parseFloat(raw); setEditingIng(p => ({ ...p, _rawQty: raw, currentQuantity: isNaN(parsed) ? 0 : parsed })); }}
-                    className="w-full px-3 py-2 text-sm rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0.00" />
+              ) : (
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">Cost/Unit (ETB)</label>
+                    <input type="text" inputMode="decimal"
+                      value={editingIng._rawCost !== undefined ? editingIng._rawCost : (editingIng.costPerUnit === 0 ? "" : String(editingIng.costPerUnit ?? ""))}
+                      onChange={e => { const raw = e.target.value; const parsed = parseFloat(raw); setEditingIng(p => ({ ...p, _rawCost: raw, costPerUnit: isNaN(parsed) ? 0 : parsed })); }}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">Current Qty</label>
+                    <input type="text" inputMode="decimal"
+                      value={editingIng._rawQty !== undefined ? editingIng._rawQty : (editingIng.currentQuantity === 0 ? "" : String(editingIng.currentQuantity ?? ""))}
+                      onChange={e => { const raw = e.target.value; const parsed = parseFloat(raw); setEditingIng(p => ({ ...p, _rawQty: raw, currentQuantity: isNaN(parsed) ? 0 : parsed })); }}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">Min Stock</label>
+                    <input type="text" inputMode="decimal"
+                      value={editingIng._rawMin !== undefined ? editingIng._rawMin : (editingIng.minQuantity === 0 ? "" : String(editingIng.minQuantity ?? ""))}
+                      onChange={e => { const raw = e.target.value; const parsed = parseFloat(raw); setEditingIng(p => ({ ...p, _rawMin: raw, minQuantity: isNaN(parsed) ? 0 : parsed })); }}
+                      className="w-full px-3 py-2 text-sm rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0.00" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">Min Stock</label>
-                  <input type="text" inputMode="decimal"
-                    value={editingIng._rawMin !== undefined ? editingIng._rawMin : (editingIng.minQuantity === 0 ? "" : String(editingIng.minQuantity ?? ""))}
-                    onChange={e => { const raw = e.target.value; const parsed = parseFloat(raw); setEditingIng(p => ({ ...p, _rawMin: raw, minQuantity: isNaN(parsed) ? 0 : parsed })); }}
-                    className="w-full px-3 py-2 text-sm rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary" placeholder="0.00" />
-                </div>
-              </div>
+              )}
             </div>
             <div className="flex gap-3 p-5 border-t border-border">
               <button onClick={() => setShowForm(false)} className="flex-1 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-muted">Cancel</button>
