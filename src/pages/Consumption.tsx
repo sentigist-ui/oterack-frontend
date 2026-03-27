@@ -67,6 +67,9 @@ export default function Consumption() {
     if (!qty || qty <= 0) { toast.error("Quantity must be greater than 0"); return; }
     if (!selectedIng) return;
 
+    const isKitchenChief = user!.role === "kitchen";
+    const autoApprove = canApprove; // Admin/Manager can auto-approve their own consumption
+
     const record: Omit<ConsumptionRecord, "id"> = {
       date: form.date,
       ingredientId: selectedIng.id,
@@ -80,12 +83,20 @@ export default function Consumption() {
       recordedBy: user!.id,
       recordedByName: user!.name,
       shift: form.shift,
-      approved: canApprove ? true : false,
-      approvedBy: canApprove ? user!.name : undefined,
+      approved: autoApprove,
+      approvedBy: autoApprove ? user!.name : undefined,
     };
 
     addRecord(record);
-    toast.success(`Consumption of ${selectedIng.name} recorded`);
+
+    if (isKitchenChief) {
+      toast.success(`Consumption recorded — sent to F&B Manager for approval`);
+    } else if (autoApprove) {
+      toast.success(`Consumption of ${selectedIng.name} recorded and approved`);
+    } else {
+      toast.success(`Consumption of ${selectedIng.name} recorded — pending approval`);
+    }
+
     setShowForm(false);
     setForm({ ...EMPTY_FORM });
   };

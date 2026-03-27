@@ -32,6 +32,7 @@ import ProfitLoss from "./pages/ProfitLoss";
 import HodPL from "./pages/HodPL";
 import PurchaserDashboard from "./pages/PurchaserDashboard";
 import SystemDocs from "./pages/SystemDocs";
+import FixedAssets from "./pages/FixedAssets";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/hod-pl" element={<HodPL />} />
             <Route path="/purchaser-dashboard" element={<PurchaserDashboard />} />
             <Route path="/system-docs" element={<SystemDocs />} />
+            <Route path="/fixed-assets" element={<FixedAssets />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppInit>

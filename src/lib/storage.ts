@@ -3,6 +3,7 @@ import type {
   Alert, ActivityLog, ConsumptionRecord, KitchenStockItem, BarStockItem,
   DailyInventorySheet, IngredientBatch, StoreRequest, StoreRequestItem,
   Employee, PayrollRecord, AccountReceivable, AccountPayable, PurchaseRequest, AppNotification,
+  FixedAsset, MonthlyAssetCount,
 } from "@/types";
 import {
   MOCK_USERS, MOCK_INGREDIENTS, MOCK_RECIPES, MOCK_STOCK_MOVEMENTS,
@@ -34,6 +35,8 @@ export const KEYS = {
   ACCOUNTS_PAYABLE: "fnb_accounts_payable",
   PURCHASE_REQUESTS: "fnb_purchase_requests",
   NOTIFICATIONS: "fnb_notifications",
+  FIXED_ASSETS: "fnb_fixed_assets",
+  MONTHLY_ASSET_COUNTS: "fnb_monthly_asset_counts",
 };
 
 function get<T>(key: string, fallback: T): T {
@@ -554,20 +557,30 @@ export const DailyInventory = {
     get<DailyInventorySheet[]>(KEYS.DAILY_INVENTORY, []).slice(0, n),
 };
 
-// ─── Consumption Records (deducts from KitchenStock FIFO on add) ──────────────
+// ─── Consumption Records (ONLY deducts from KitchenStock when APPROVED by manager) ──────────────
 export const ConsumptionStore = {
   getAll: () => get<ConsumptionRecord[]>(KEYS.CONSUMPTION, []),
   getByDate: (date: string) => get<ConsumptionRecord[]>(KEYS.CONSUMPTION, []).filter(r => r.date === date),
+  getPendingApproval: () => get<ConsumptionRecord[]>(KEYS.CONSUMPTION, []).filter(r => !r.approved),
   add: (record: ConsumptionRecord) => {
     const all = get<ConsumptionRecord[]>(KEYS.CONSUMPTION, []);
     all.unshift(record);
     set(KEYS.CONSUMPTION, all);
-    KitchenStock.deductQty(record.ingredientId, record.quantity);
+    // DO NOT deduct stock on add — only when approved by manager
+    if (record.approved) {
+      KitchenStock.deductQty(record.ingredientId, record.quantity);
+    }
   },
   approve: (id: string, approverName: string) => {
     const all = get<ConsumptionRecord[]>(KEYS.CONSUMPTION, []);
     const idx = all.findIndex(r => r.id === id);
-    if (idx >= 0) { all[idx].approved = true; all[idx].approvedBy = approverName; set(KEYS.CONSUMPTION, all); }
+    if (idx >= 0) {
+      all[idx].approved = true;
+      all[idx].approvedBy = approverName;
+      set(KEYS.CONSUMPTION, all);
+      // Deduct from kitchen stock when approved
+      KitchenStock.deductQty(all[idx].ingredientId, all[idx].quantity);
+    }
   },
   delete: (id: string) => set(KEYS.CONSUMPTION, get<ConsumptionRecord[]>(KEYS.CONSUMPTION, []).filter(r => r.id !== id)),
   getDateRange: (from: string, to: string) => get<ConsumptionRecord[]>(KEYS.CONSUMPTION, []).filter(r => r.date >= from && r.date <= to),
@@ -767,6 +780,35 @@ export const NotificationsStore = {
   },
 };
 
+// ─── Fixed Assets ───────────────────────────────────────────────────────────────────
+export const FixedAssetsStore = {
+  getAll: (): FixedAsset[] => get<FixedAsset[]>(KEYS.FIXED_ASSETS, []),
+  getById: (id: string) => get<FixedAsset[]>(KEYS.FIXED_ASSETS, []).find(a => a.id === id),
+  getActive: () => get<FixedAsset[]>(KEYS.FIXED_ASSETS, []).filter(a => a.status === "active"),
+  upsert: (asset: FixedAsset) => {
+    const all = get<FixedAsset[]>(KEYS.FIXED_ASSETS, []);
+    const idx = all.findIndex(a => a.id === asset.id);
+    if (idx >= 0) all[idx] = asset; else all.unshift(asset);
+    set(KEYS.FIXED_ASSETS, all);
+  },
+  delete: (id: string) => set(KEYS.FIXED_ASSETS, get<FixedAsset[]>(KEYS.FIXED_ASSETS, []).filter(a => a.id !== id)),
+  save: (assets: FixedAsset[]) => set(KEYS.FIXED_ASSETS, assets),
+};
+
+export const MonthlyAssetCountsStore = {
+  getAll: (): MonthlyAssetCount[] => get<MonthlyAssetCount[]>(KEYS.MONTHLY_ASSET_COUNTS, []),
+  getByMonth: (month: string): MonthlyAssetCount | undefined =>
+    get<MonthlyAssetCount[]>(KEYS.MONTHLY_ASSET_COUNTS, []).find(c => c.month === month),
+  upsert: (count: MonthlyAssetCount) => {
+    const all = get<MonthlyAssetCount[]>(KEYS.MONTHLY_ASSET_COUNTS, []);
+    const idx = all.findIndex(c => c.id === count.id);
+    if (idx >= 0) all[idx] = count; else all.unshift(count);
+    set(KEYS.MONTHLY_ASSET_COUNTS, all);
+  },
+  getRecent: (n = 12): MonthlyAssetCount[] =>
+    get<MonthlyAssetCount[]>(KEYS.MONTHLY_ASSET_COUNTS, []).slice(0, n),
+};
+
 // ─── Storage Init ─────────────────────────────────────────────────────────────
 export function resetAdminAndSales(): void {
   const users = get<User[]>(KEYS.USERS, []);
@@ -812,6 +854,8 @@ export function initializeStorage(): void {
     if (!localStorage.getItem(KEYS.ACCOUNTS_PAYABLE)) set(KEYS.ACCOUNTS_PAYABLE, MOCK_AP);
     if (!localStorage.getItem(KEYS.PURCHASE_REQUESTS)) set(KEYS.PURCHASE_REQUESTS, []);
     if (!localStorage.getItem(KEYS.NOTIFICATIONS)) set(KEYS.NOTIFICATIONS, []);
+    if (!localStorage.getItem(KEYS.FIXED_ASSETS)) set(KEYS.FIXED_ASSETS, []);
+    if (!localStorage.getItem(KEYS.MONTHLY_ASSET_COUNTS)) set(KEYS.MONTHLY_ASSET_COUNTS, []);
     Batches.updateFlags();
     return;
   }
@@ -836,5 +880,7 @@ export function initializeStorage(): void {
   set(KEYS.ACCOUNTS_PAYABLE, MOCK_AP);
   set(KEYS.PURCHASE_REQUESTS, []);
   set(KEYS.NOTIFICATIONS, []);
+  set(KEYS.FIXED_ASSETS, []);
+  set(KEYS.MONTHLY_ASSET_COUNTS, []);
   localStorage.setItem(KEYS.INITIALIZED, "1");
 }

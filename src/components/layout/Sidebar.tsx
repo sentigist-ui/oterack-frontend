@@ -32,6 +32,7 @@ const allNavItems = [
   { to: "/payroll",           icon: Users,            label: "Payroll",          modules: ["admin","finance","owner"] },
   { to: "/accounts-receivable",icon: DollarSign,      label: "Accounts Receivable",modules: ["admin","finance","owner","collector","audit"] },
   { to: "/accounts-payable",  icon: CreditCard,       label: "Accounts Payable", modules: ["admin","finance","owner","audit"] },
+  { to: "/fixed-assets",      icon: Briefcase,        label: "Fixed Assets",     modules: ["admin","finance","owner"] },
   { to: "/profit-loss",       icon: TrendingUp,       label: "P&L Report",       modules: ["admin","manager","finance","owner","audit"] },
   { to: "/hod-pl",            icon: Building2,        label: "My Dept P&L",      modules: ["hod"] },
   { to: "/purchaser-dashboard",icon: Truck,            label: "My Orders",        modules: ["purchaser"] },

@@ -517,7 +517,7 @@ export interface AppNotification {
   recipientRole?: string;
   title: string;
   message: string;
-  type: "ar_collection" | "pr_approval" | "pr_action" | "general";
+  type: "ar_collection" | "pr_approval" | "pr_action" | "general" | "consumption_approval";
   relatedId?: string;        // AR id or PR id
   isRead: boolean;
   createdAt: string;
@@ -540,4 +540,64 @@ export interface ConsumptionRecord {
   shift: "Morning" | "Afternoon" | "Evening" | "Night";
   approved: boolean;
   approvedBy?: string;
+}
+
+// ─── Fixed Assets Management ─────────────────────────────────────────────────────────────────────────────
+export type FixedAssetCategory = "Furniture" | "Equipment" | "Electronics" | "Kitchen Appliances" | "Bar Appliances" | "HVAC" | "Plumbing" | "Other";
+export type FixedAssetStatus = "active" | "maintenance" | "retired" | "disposed";
+
+export interface FixedAsset {
+  id: string;
+  name: string;
+  category: FixedAssetCategory;
+  purchaseDate: string;           // ISO date
+  purchasePrice: number;
+  supplier: string;
+  location: string;               // Kitchen, Bar, Main Store, Office, etc.
+  serialNumber?: string;
+  model?: string;
+  condition: "excellent" | "good" | "fair" | "poor";
+  depreciationRate?: number;      // annual % depreciation
+  usefulLife?: number;            // years
+  currentValue: number;           // calculated or manual
+  status: FixedAssetStatus;
+  lastMaintenanceDate?: string;
+  nextMaintenanceDate?: string;
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MonthlyAssetCount {
+  id: string;
+  month: string;                  // YYYY-MM
+  countDate: string;              // ISO date
+  countedBy: string;
+  countedByName: string;
+  entries: MonthlyAssetEntry[];
+  totalAssets: number;
+  missingAssets: number;          // assets from previous month not found
+  newAssets: number;              // assets counted but not in previous
+  totalValue: number;
+  totalDepreciation: number;      // since purchase
+  status: "draft" | "submitted" | "approved";
+  approvedBy?: string;
+  approvedAt?: string;
+  createdAt: string;
+}
+
+export interface MonthlyAssetEntry {
+  assetId: string;
+  assetName: string;
+  category: FixedAssetCategory;
+  location: string;
+  purchaseDate: string;
+  purchasePrice: number;
+  currentValue: number;
+  depreciation: number;           // total depreciation since purchase
+  condition: "excellent" | "good" | "fair" | "poor";
+  physicallyVerified: boolean;    // counted this month
+  notes: string;
+  previouslyExisted: boolean;     // was in last month's count
 }
